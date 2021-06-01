@@ -198,3 +198,67 @@ def add_data(df,float1,float2):
     return train
 
 
+# Processing Pipeline Function
+# -------------------------------------------------------
+# -------------------------------------------------------
+def processing_pipeline(train, test):
+
+    train = add_data(train,-2,0)
+    train = add_data(train,-5,1)
+    train = add_data(train,-5,2)
+    train = add_data(train,-5,.5)
+    train = add_data(train,-5,.5)
+    train = add_data(train,-5,.5)
+    train = add_data(train,-2,6)
+    train = add_data(train,-2,6)
+
+    print(train.target.plot.hist())
+    print(train.target.mean())
+    print(len(train))
+
+    #combine train and test set for pre-processing
+    c_df = pd.concat([train, test], axis = 0)
+
+    #apply functions to train and test set
+    series_documents =  c_df.excerpt.apply(lambda x: document_info(x))
+    series_phonemes = c_df.excerpt.apply(lambda x: phonemes_counts(x))
+    series_characters =  c_df.excerpt.apply(lambda x: character_counts(x))
+    series_word_length = c_df.excerpt.apply(lambda x: word_length_counts(x))
+    series_word_per_sent = c_df.excerpt.apply(lambda x: words_per_sentence(x))
+
+    df_documents = pd.DataFrame(list(series_documents))
+    df_phonemes = pd.DataFrame(list(series_phonemes))
+    df_characters = pd.DataFrame(list(series_characters))
+    df_word_length = pd.DataFrame(list(series_word_length))
+    df_word_per_sent = pd.DataFrame(list(series_word_per_sent))
+    df_word_per_sent.rename(columns={0:'wps'}, inplace = True)
+
+    #create column that returns 1 if excerpt has dialogue or 0 if no dialogue
+    df_dialogue = pd.DataFrame(list(c_df.excerpt.str.contains("\".*\"",regex = True).astype(int)))
+    df_dialogue.rename(columns = {0:'dialogue'},inplace = True)
+
+    #turn na's to 0
+    df_characters.fillna(0, inplace = True)
+
+    #turn data to integer type
+    for col in df_characters.columns:
+        df_chracters[col] = df_chracters[col].astype(int, copy=False)
+
+    #create processed dataset for model
+    df_X = pd.concat([df_documents, df_phonemes, df_word_length,df_word_per_sent,df_dialogue], axis = 1)
+
+    #split dataset into train and test set
+    df_X_test = df_X.iloc[-len(test):]
+    df_X = df_X.iloc[:-len(test)]
+    df_y = c_df['target'][:-len(test)] 
+
+    return df_X, df_X_test, df_y
+
+
+# #Standardize Data
+# from sklearn.preprocessing import StandardScaler, MinMaxScaler
+# from sklearn.model_selection import cross_validate
+
+# scaler = MinMaxScaler()
+# print(scaler.fit(df_X))
+# x_train = scaler.transform(df_X)
